@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml"  lang="en-us">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+
+<title>Introducing Toxiproxy Haskell | Jake Pittis</title>
+
+
+<link rel="stylesheet" href="https://jpittis.ca/css/style.css"/><link rel='stylesheet' href='/css/custom.css'></head>
+<body>
+
+<section class="section">
+  <div class="container">
+    <nav class="nav">
+      <div class="nav-left">
+        <a class="nav-item" href="https://jpittis.ca/"><h1 class="title is-2">Jake Pittis</h1></a>
+      </div>
+      <div class="nav-right">
+        <nav class="nav-item level is-mobile">
+          <a class="nav-item" href="https://jpittis.ca/about"><h1 class="title is-4">About</h1></a></nav>
+      </div>
+    </nav>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="subtitle is-6 is-pulled-right">
+      
+    </div>
+    
+    <h1 class="title">Introducing Toxiproxy Haskell</h1>
+    
+    <div class="content">
+      
+
+<p>With the release of <a href="https://github.com/jpittis/toxiproxy-haskell">toxiproxy-haskell</a> on
+<a href="https://hackage.haskell.org/package/toxiproxy-haskell">Hackage</a>, I&rsquo;d like to introduce
+the Haskell community to failure testing using Toxiproxy so that they can improve the
+resilience of their network connected applications.</p>
+
+<h1 id="toxiproxy">Toxiproxy</h1>
+
+<p>Toxiproxy is a cross platform TCP proxy that lets you simulate latency, timeouts,
+rejections and other network conditions in your test and development environments.</p>
+
+<p>I think the best way to explain how Toxiproxy works is through an example. Let&rsquo;s create a
+proxy to simulate latency between a redis client and server.</p>
+
+<p>We start by running <code>toxiproxy-server</code> from a terminal. Toxiproxy exposes an HTTP API on
+port 8474.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">2</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ toxiproxy-server
+INFO<span style="color:#666">[</span><span style="color:#40a070">0000</span><span style="color:#666">]</span> API HTTP server starting                      <span style="color:#bb60d5">host</span><span style="color:#666">=</span>localhost <span style="color:#bb60d5">port</span><span style="color:#666">=</span><span style="color:#40a070">8474</span> <span style="color:#bb60d5">version</span><span style="color:#666">=</span>git-fe6bf4f</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>We then create a proxy using <code>toxiproxy-cli</code>. We&rsquo;re going to call our proxy <code>redis</code> and
+instruct Toxiproxy to listen for TCP requests on port 4444 and forward them to the default
+redis port 6379.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">2</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ toxiproxy-cli create redis --listen <span style="color:#40a070">127</span>.0.0.1:4444  --upstream <span style="color:#40a070">127</span>.0.0.1:6379
+Created new proxy redis</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>Finally, let&rsquo;s add a toxic to our proxy. Toxics are used to inject network failures into
+a proxy. In this case, we&rsquo;re adding a latency toxic which will add 1 second of latency to
+data flowing from the redis server back to the redis client.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">2</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ toxiproxy-cli toxic add redis --type latency --attribute <span style="color:#bb60d5">latency</span><span style="color:#666">=</span><span style="color:#40a070">1000</span> --attribute <span style="color:#bb60d5">jitter</span><span style="color:#666">=</span><span style="color:#40a070">0</span>
+Added downstream latency toxic <span style="color:#4070a0">&#39;latency_downstream&#39;</span> on proxy <span style="color:#4070a0">&#39;redis&#39;</span></code></pre></td></tr></table>
+</div>
+</div>
+
+<p>Now we can test it out.</p>
+
+<p>Start a redis server in a second terminal.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">2</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ redis-server
+<span style="color:#40a070">58968</span>:M <span style="color:#40a070">04</span> Mar <span style="color:#40a070">21</span>:13:39.957 * Ready to accept connections</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>When using the redis client, we must specify the port of our proxy rather than the default
+redis port. A simple <code>GET KEY</code> command will prove that the request takes 1 second to
+respond rather than the usual immediate response.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">2</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">3</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">4</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ redis-cli -p <span style="color:#40a070">4444</span>
+<span style="color:#40a070">127</span>.0.0.1:4444&gt; GET KEY
+<span style="color:#666">(</span>nil<span style="color:#666">)</span>
+<span style="color:#666">(</span><span style="color:#40a070">1</span>.00s<span style="color:#666">)</span></code></pre></td></tr></table>
+</div>
+</div>
+
+<p>Toxiproxy supports more kinds of network failures than just added latency. The command
+line interface has provided us with a simple example to demonstrate how Toxiproxy works.
+The rest of this post is going to explain how you can use
+<a href="https://github.com/jpittis/toxiproxy-haskell">toxiproxy-haskell</a> to write failure tests
+for your Haskell applications and hopefully make them more resilient to external failures.</p>
+
+<h1 id="toxiproxy-haskell">Toxiproxy Haskell</h1>
+
+<p><a href="https://github.com/jpittis/toxiproxy-haskell">toxiproxy-haskell</a> exposes a simple
+<a href="https://hackage.haskell.org/package/servant">servant</a> HTTP API. Though you&rsquo;re welcome to
+use this low level API, I&rsquo;ve written three higher level helpers to make working with
+Toxiproxy a little easier.</p>
+
+<p>Let&rsquo;s recreate our redis latency example from above using
+<a href="https://hackage.haskell.org/package/hedis">hedis</a> and
+<a href="https://github.com/jpittis/toxiproxy-haskell">toxiproxy-haskell</a>.</p>
+
+<p>Here&rsquo;s a function that measures the duration of a set and get to redis.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 2</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 3</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 4</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 5</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 6</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 7</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 8</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 9</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">10</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">11</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">12</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">13</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">14</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">15</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">16</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">17</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">18</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="color:#60a0b0;font-style:italic">{-# LANGUAGE OverloadedStrings #-}</span>
+
+<span style="color:#007020;font-weight:bold">import</span> <span style="color:#007020;font-weight:bold">qualified</span> <span style="color:#0e84b5;font-weight:bold">Database.Redis</span> <span style="color:#007020;font-weight:bold">as</span> Redis
+<span style="color:#007020;font-weight:bold">import</span> <span style="color:#007020;font-weight:bold">qualified</span> <span style="color:#0e84b5;font-weight:bold">Data.Time.Clock.POSIX</span> <span style="color:#007020;font-weight:bold">as</span> Time
+<span style="color:#007020;font-weight:bold">import</span> <span style="color:#007020;font-weight:bold">qualified</span> <span style="color:#0e84b5;font-weight:bold">Data.Map.Strict</span> <span style="color:#007020;font-weight:bold">as</span> Map
+
+<span style="color:#06287e">timeSetGet</span> <span style="color:#06287e">port</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#007020;font-weight:bold">do</span>
+  <span style="color:#06287e">before</span> <span style="color:#007020;font-weight:bold">&lt;-</span> <span style="color:#902000">Time</span><span style="color:#666">.</span><span style="color:#06287e">getPOSIXTime</span>
+
+  <span style="color:#06287e">conn</span> <span style="color:#007020;font-weight:bold">&lt;-</span> <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">checkedConnect</span> <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">defaultConnectInfo</span> { <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">connectPort</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#06287e">port</span> }
+  <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">runRedis</span> <span style="color:#06287e">conn</span> <span style="color:#666">$</span> <span style="color:#007020;font-weight:bold">do</span>
+    <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">set</span> <span style="color:#4070a0">&#34;haskell&#34;</span> <span style="color:#4070a0">&#34;is awesome&#34;</span>
+    <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">get</span> <span style="color:#4070a0">&#34;haskell&#34;</span>
+
+  <span style="color:#06287e">after</span> <span style="color:#007020;font-weight:bold">&lt;-</span> <span style="color:#902000">Time</span><span style="color:#666">.</span><span style="color:#06287e">getPOSIXTime</span>
+  <span style="color:#06287e">return</span> <span style="color:#666">$</span> <span style="color:#06287e">after</span> <span style="color:#666">-</span> <span style="color:#06287e">before</span>
+
+<span style="color:#06287e">timeSetGetNormal</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#06287e">timeSetGet</span> (<span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#902000">PortNumber</span> <span style="color:#40a070">6379</span>)</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>We can run it from the repl. Don&rsquo;t forget to have <code>toxiproxy-server</code> and <code>redis-server</code>
+running in the background!</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">2</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">3</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ stack repl example.hs
+&gt; timeSetGetNormal
+<span style="color:#40a070">0</span>.001758s</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>Now to add some latency with Toxiproxy.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 2</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 3</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 4</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 5</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 6</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 7</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 8</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 9</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">10</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">11</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">12</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">13</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">14</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">15</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">16</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">17</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">18</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">19</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">Toxiproxy</span>
+
+<span style="color:#06287e">timeSetGetWithLatency</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#007020;font-weight:bold">do</span>
+  <span style="color:#007020;font-weight:bold">let</span> <span style="color:#06287e">proxy</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">Proxy</span>
+        { <span style="color:#06287e">proxyName</span>     <span style="color:#007020;font-weight:bold">=</span> <span style="color:#4070a0">&#34;redis&#34;</span>
+        , <span style="color:#06287e">proxyListen</span>   <span style="color:#007020;font-weight:bold">=</span> <span style="color:#4070a0">&#34;127.0.0.1:4444&#34;</span>
+        , <span style="color:#06287e">proxyUpstream</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#4070a0">&#34;127.0.0.1:6379&#34;</span>
+        , <span style="color:#06287e">proxyEnabled</span>  <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">True</span>
+        , <span style="color:#06287e">proxyToxics</span>   <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">[]</span>
+        }
+  <span style="color:#007020;font-weight:bold">let</span> <span style="color:#06287e">latency</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">Toxic</span>
+        { <span style="color:#06287e">toxicName</span>       <span style="color:#007020;font-weight:bold">=</span> <span style="color:#4070a0">&#34;latency&#34;</span>
+        , <span style="color:#06287e">toxicType</span>       <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">Latency</span>
+        , <span style="color:#06287e">toxicStream</span>     <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">Downstream</span>
+        , <span style="color:#06287e">toxicToxicity</span>   <span style="color:#007020;font-weight:bold">=</span> <span style="color:#40a070">1</span>
+        , <span style="color:#06287e">toxicAttributes</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">Map</span><span style="color:#666">.</span><span style="color:#06287e">fromList</span> [(<span style="color:#4070a0">&#34;latency&#34;</span>, <span style="color:#40a070">1000</span>), (<span style="color:#4070a0">&#34;jitter&#34;</span>, <span style="color:#40a070">0</span>)]
+        }
+  <span style="color:#06287e">withProxy</span> <span style="color:#06287e">proxy</span> <span style="color:#666">$</span> <span style="color:#06287e">\proxy</span> <span style="color:#007020;font-weight:bold">-&gt;</span>
+    <span style="color:#06287e">withToxic</span> <span style="color:#06287e">proxy</span> <span style="color:#06287e">latency</span> (<span style="color:#06287e">timeSetGet</span> (<span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#902000">PortNumber</span> <span style="color:#40a070">4444</span>))</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>And of course, since we&rsquo;re sending two serial commands to redis, with our toxic activated
+it takes two seconds.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">2</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">3</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-bash" data-lang="bash">$ stack repl example.hs
+&gt; timeSetGetWithLatency
+<span style="color:#40a070">2</span>.008837s</code></pre></td></tr></table>
+</div>
+</div>
+
+<h1 id="writing-tests-to-improve-resilience">Writing Tests to Improve Resilience</h1>
+
+<p>How can you use <a href="https://github.com/jpittis/toxiproxy-haskell">toxiproxy-haskell</a> to
+improve your application&rsquo;s resilience?</p>
+
+<ol>
+<li>Find an external TCP call that your application makes.</li>
+<li>Write a test to ensure your application behaves correctly during network failure.</li>
+</ol>
+
+<p>Let&rsquo;s see how <a href="https://hackage.haskell.org/package/hedis">hedis</a> behaves when redis is
+rejecting connections!</p>
+
+<p>For example, let&rsquo;s write a wrapper around the <code>Redis.get</code> call that returns a fallback on
+failure.</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 2</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 3</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 4</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 5</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 6</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 7</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 8</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 9</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">10</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">11</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">12</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">13</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">Control.Exception</span>
+<span style="color:#007020;font-weight:bold">import</span> <span style="color:#0e84b5;font-weight:bold">Data.ByteString</span>
+
+<span style="color:#06287e">getWithFallback</span> <span style="color:#06287e">key</span> <span style="color:#06287e">fallback</span> <span style="color:#06287e">port</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#007020;font-weight:bold">do</span>
+  <span style="color:#06287e">result</span> <span style="color:#007020;font-weight:bold">&lt;-</span> <span style="color:#06287e">try</span> <span style="color:#06287e">run</span> <span style="color:#007020;font-weight:bold">::</span> <span style="color:#902000">IO</span> (<span style="color:#902000">Either</span> <span style="color:#902000">SomeException</span>
+                                  (<span style="color:#902000">Either</span> <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#902000">Reply</span> (<span style="color:#902000">Maybe</span> <span style="color:#902000">ByteString</span>)))
+  <span style="color:#007020;font-weight:bold">case</span> <span style="color:#06287e">result</span> <span style="color:#007020;font-weight:bold">of</span>
+    <span style="color:#902000">Left</span> <span style="color:#007020;font-weight:bold">_</span>        <span style="color:#007020;font-weight:bold">-&gt;</span> <span style="color:#06287e">fallback</span>
+    <span style="color:#902000">Right</span> <span style="color:#06287e">success</span> <span style="color:#007020;font-weight:bold">-&gt;</span> <span style="color:#06287e">return</span> <span style="color:#06287e">success</span>
+   <span style="color:#007020;font-weight:bold">where</span>
+    <span style="color:#06287e">run</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#007020;font-weight:bold">do</span>
+      <span style="color:#06287e">conn</span> <span style="color:#007020;font-weight:bold">&lt;-</span> <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">checkedConnect</span> <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">defaultConnectInfo</span> { <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">connectPort</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#06287e">port</span> }
+      <span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">runRedis</span> <span style="color:#06287e">conn</span> (<span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#06287e">get</span> <span style="color:#06287e">key</span>)</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>How would we test this function out to ensure it behaves as we want when redis crashes?
+Let&rsquo;s write a Toxiproxy test!</p>
+
+<div class="highlight"><div style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4">
+<table style="border-spacing:0;padding:0;margin:0;border:0;width:100%;overflow:auto;display:block;"><tr><td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 1</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 2</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 3</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 4</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 5</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 6</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 7</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 8</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f"> 9</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">10</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">11</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">12</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">13</span><span style="margin-right:0.4em;padding:00.4em00.4em;display:block;color:#7f7f7f">14</span></code></pre></td>
+<td style="vertical-align:top;padding:0;margin:0;border:0;">
+<pre style="background-color:#f0f0f0;-moz-tab-size:4;-o-tab-size:4;tab-size:4"><code class="language-haskell" data-lang="haskell"><span style="color:#06287e">main</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#06287e">hspec</span> <span style="color:#666">$</span>
+  <span style="color:#06287e">describe</span> <span style="color:#4070a0">&#34;Redis Resilience&#34;</span> <span style="color:#666">$</span>
+    <span style="color:#06287e">it</span> <span style="color:#4070a0">&#34;getWithFallback returns a default value when redis is down&#34;</span> <span style="color:#666">$</span> <span style="color:#007020;font-weight:bold">do</span>
+      <span style="color:#007020;font-weight:bold">let</span> <span style="color:#06287e">proxy</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">Proxy</span>
+            { <span style="color:#06287e">proxyName</span>     <span style="color:#007020;font-weight:bold">=</span> <span style="color:#4070a0">&#34;redis&#34;</span>
+            , <span style="color:#06287e">proxyListen</span>   <span style="color:#007020;font-weight:bold">=</span> <span style="color:#4070a0">&#34;127.0.0.1:4444&#34;</span>
+            , <span style="color:#06287e">proxyUpstream</span> <span style="color:#007020;font-weight:bold">=</span> <span style="color:#4070a0">&#34;127.0.0.1:6379&#34;</span>
+            , <span style="color:#06287e">proxyEnabled</span>  <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">True</span>
+            , <span style="color:#06287e">proxyToxics</span>   <span style="color:#007020;font-weight:bold">=</span> <span style="color:#902000">[]</span>
+            }
+      <span style="color:#06287e">withProxy</span> <span style="color:#06287e">proxy</span> <span style="color:#666">$</span> <span style="color:#06287e">\proxy</span> <span style="color:#007020;font-weight:bold">-&gt;</span>
+        <span style="color:#06287e">withDisabled</span> <span style="color:#06287e">proxy</span> <span style="color:#666">$</span>
+          <span style="color:#06287e">getWithFallback</span> <span style="color:#4070a0">&#34;haskell&#34;</span> (<span style="color:#06287e">return</span> <span style="color:#666">.</span> <span style="color:#902000">Right</span> <span style="color:#666">.</span> <span style="color:#902000">Just</span> <span style="color:#666">$</span> <span style="color:#4070a0">&#34;no&#34;</span>) (<span style="color:#902000">Redis</span><span style="color:#666">.</span><span style="color:#902000">PortNumber</span> <span style="color:#40a070">4444</span>)
+            `<span style="color:#06287e">shouldReturn</span>` (<span style="color:#902000">Right</span> <span style="color:#666">.</span> <span style="color:#902000">Just</span> <span style="color:#666">$</span> <span style="color:#4070a0">&#34;no&#34;</span>)</code></pre></td></tr></table>
+</div>
+</div>
+
+<p>When implementing and using libraries that perform external calls, tests similar to the
+one shown above can be used to ensure correct behaviour during network failure.</p>
+
+<h1 id="avoiding-regression">Avoiding Regression</h1>
+
+<p>Though testing with <code>toxiproxy-cli</code> or one off scripts is better than nothing, generally
+we want our Toxiproxy tests to be permanent. Writing an automatable hspec Toxiproxy test
+is demonstrated above. This means that your test will be run on every release of your
+application to avoid regression.</p>
+
+<h1 id="what-toxiproxy-isn-t">What Toxiproxy Isn&rsquo;t</h1>
+
+<p>It&rsquo;s important to realize that Toxiproxy is a layer 4 proxy. It does not deal in IP
+packets but instead at the TCP stream level. This makes it difficult to simulate timeouts
+related to TCP connection establishment and time until <code>accept(2)</code>.</p>
+
+<p>Toxiproxy is not currently protocol aware. It does not understand what HTTP is, instead it
+just forwards the bytes. This can make it hard to test HTTPS because a client will think
+it&rsquo;s connecting to Toxiproxy on host A but it will receive a certificate for the upstream
+host B. Currently, this issue must be handled by the client.</p>
+
+<p>Toxiproxy should not be used in production. It&rsquo;s only designed for use in linux, OSX and
+windows test and development environments. I would not recommend it to be used to proxy
+production traffic.</p>
+
+<h1 id="thanks">Thanks</h1>
+
+<p>It would be great if the Haskell community could start using tools like Toxiproxy to
+improve our applications resilience. The Haskell Toxiproxy client is only about 300 lines
+of code. Pull requests and questions are welcome on Github or by email!</p>
+
+<p>There&rsquo;s nothing worse than finding out how your application reacts to a network blip in
+production! Find out in development and test using Toxiproxy!</p>
+
+    </div>
+    
+  </div>
+</section>
+
+
+<section class="section">
+  <div class="container has-text-centered">
+    <p></p>
+    
+  </div>
+</section>
+
+</body>
+</html>
+

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8" standalone="yes" ?>
+<rss version="2.0" xmlns:atom="http://www.w3.org/2005/Atom">
+  <channel>
+    <title>Posts on Jake Pittis</title>
+    <link>https://jpittis.ca/posts/</link>
+    <description>Recent content in Posts on Jake Pittis</description>
+    <generator>Hugo -- gohugo.io</generator>
+    <language>en-us</language>
+    <lastBuildDate>Sat, 10 Mar 2018 00:00:00 +0000</lastBuildDate>
+    
+	<atom:link href="https://jpittis.ca/posts/index.xml" rel="self" type="application/rss+xml" />
+    
+    
+    <item>
+      <title>Introducing Toxiproxy Haskell</title>
+      <link>https://jpittis.ca/posts/introducing-toxiproxy-haskell/</link>
+      <pubDate>Sat, 10 Mar 2018 00:00:00 +0000</pubDate>
+      
+      <guid>https://jpittis.ca/posts/introducing-toxiproxy-haskell/</guid>
+      <description>With the release of toxiproxy-haskell on Hackage, I&amp;rsquo;d like to introduce the Haskell community to failure testing using Toxiproxy so that they can improve the resilience of their network connected applications.
+Toxiproxy Toxiproxy is a cross platform TCP proxy that lets you simulate latency, timeouts, rejections and other network conditions in your test and development environments.
+I think the best way to explain how Toxiproxy works is through an example.</description>
+    </item>
+    
+  </channel>
+</rss>
